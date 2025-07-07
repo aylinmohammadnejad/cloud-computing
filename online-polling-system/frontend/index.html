@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>نظرسنجی آنلاین</title>
+  <meta charset="utf-8">
+  <style>
+    body { font-family: sans-serif; padding: 2rem; }
+    input, button { padding: 0.5rem; margin: 0.5rem 0; }
+  </style>
+</head>
+<body>
+  <h1>ساخت نظرسنجی</h1>
+  <form id="pollForm">
+    <input type="text" id="question" placeholder="سؤال شما"><br>
+    <input type="text" id="opt1" placeholder="گزینه ۱"><br>
+    <input type="text" id="opt2" placeholder="گزینه ۲"><br>
+    <button type="submit">ایجاد</button>
+  </form>
+
+  <div id="result"></div>
+
+  <script>
+    const form = document.getElementById("pollForm");
+    form.onsubmit = async (e) => {
+      e.preventDefault();
+      const res = await fetch("/polls/", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          question: document.getElementById("question").value,
+          options: [document.getElementById("opt1").value, document.getElementById("opt2").value]
+        })
+      });
+      const data = await res.json();
+      document.getElementById("result").innerText = `لینک نظرسنجی شما: /polls/${data.slug}`;
+    }
+  </script>
+</body>
+</html>

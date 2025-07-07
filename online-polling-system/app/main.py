@@ -1,67 +1,53 @@
 # app/main.py
-from fastapi import FastAPI, HTTPException, Depends
-from pydantic import BaseModel, EmailStr
-from uuid import uuid4
-from typing import List
-import uvicorn
+from fastapi import FastAPI, Depends, HTTPException
+from fastapi.middleware.cors import CORSMiddleware
+from sqlalchemy.orm import Session
+import models, schemas, crud
+from app.database import SessionLocal
 
-app = FastAPI()
+# جداول را (تنها بار اول) بساز
+models.Base.metadata.create_all(bind=engine)
 
-# مدل‌ها
-class PollCreate(BaseModel):
-    question: str
-    options: List[str]
+app = FastAPI(title="Online Polling System")
 
-class VoteRequest(BaseModel):
-    email: EmailStr
-    selected_option: str
+# اجازه CORS برای فرانت ساده
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
-polls = {}
-votes = {}
+# وابستگی گرفتن سشن دیتابیس
+def get_db():
+    db = SessionLocal()
+    try:
+        yield db
+    finally:
+        db.close()
 
-@app.post("/polls/")
-def create_poll(data: PollCreate):
-    poll_id = str(uuid4())
-    slug = poll_id[:6]
-    polls[slug] = {"question": data.question, "options": data.options, "votes": []}
-    return {"slug": slug}
+# ---- Endpoints ----
+@app.post("/polls/", response_model=schemas.PollResponse)
+def create_poll(poll: schemas.PollCreate, db: Session = Depends(get_db)):
+    return crud.create_poll(db, poll)
 
-@app.get("/polls/{slug}/")
-def get_poll(slug: str):
-    if slug not in polls:
+@app.get("/polls/{slug}/", response_model=schemas.PollResponse)
+def get_poll(slug: str, db: Session = Depends(get_db)):
+    poll = crud.get_poll_by_slug(db, slug)
+    if not poll:
         raise HTTPException(status_code=404, detail="Poll not found")
-    return polls[slug]
+    return poll
 
 @app.post("/polls/{slug}/vote")
-def vote(slug: str, vote_data: VoteRequest):
-    if slug not in polls:
+def vote(slug: str, vote: schemas.VoteCreate, db: Session = Depends(get_db)):
+    result = crud.create_vote(db, slug, vote)
+    if result == "exists":
+        raise HTTPException(status_code=403, detail="You have already voted")
+    if result is None:
         raise HTTPException(status_code=404, detail="Poll not found")
-
-    for v in polls[slug]["votes"]:
-        if v["email"] == vote_data.email:
-            raise HTTPException(status_code=403, detail="Already voted")
-    if vote_data.selected_option not in polls[slug]["options"]:
-        raise HTTPException(status_code=400, detail="Invalid option")
-
-    polls[slug]["votes"].append({
-        "email": vote_data.email,
-        "selected_option": vote_data.selected_option
-    })
-    return {"message": "Vote recorded"}
+    return {"message": "Vote submitted"}
 
 @app.get("/polls/{slug}/results")
-def get_results(slug: str):
-    if slug not in polls:
-        raise HTTPException(status_code=404, detail="Poll not found")
-
-    total_votes = len(polls[slug]["votes"])
-    option_counts = {opt: 0 for opt in polls[slug]["options"]}
-    for v in polls[slug]["votes"]:
-        option_counts[v["selected_option"]] += 1
-    results = {
-        opt: f"{(count / total_votes * 100):.1f}%" for opt, count in option_counts.items()
-    }
-    return {"total": total_votes, "results": results}
-
-if __name__ == "__main__":
-    uvicorn.run(app, host="0.0.0.0", port=8000)
+def poll_results(slug: str, db: Session = Depends(get_db)):
+    return crud.get_results(db, slug)          # این تابع را در crud پیاده‌سازی کن

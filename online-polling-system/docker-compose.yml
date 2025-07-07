@@ -1,26 +1,21 @@
-version: '3.9'
-
 services:
   app:
-    build: ./app
+    build:
+      context: ./app         # ⬅️ پوشه app رو به عنوان context بده
     ports:
       - "8000:8000"
     volumes:
       - ./app:/app
     depends_on:
-      - redis
       - db
+      - redis
 
   db:
-    image: postgres
+    image: postgres:13
     environment:
-      POSTGRES_DB: polls
       POSTGRES_USER: user
       POSTGRES_PASSWORD: pass
-    ports:
-      - "5432:5432"
+      POSTGRES_DB: polls
 
   redis:
     image: redis:alpine
-    ports:
-      - "6379:6379"
