@@ -1,0 +1,26 @@
+version: '3.9'
+
+services:
+  app:
+    build: ./app
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./app:/app
+    depends_on:
+      - redis
+      - db
+
+  db:
+    image: postgres
+    environment:
+      POSTGRES_DB: polls
+      POSTGRES_USER: user
+      POSTGRES_PASSWORD: pass
+    ports:
+      - "5432:5432"
+
+  redis:
+    image: redis:alpine
+    ports:
+      - "6379:6379"
