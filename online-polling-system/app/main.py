@@ -3,7 +3,9 @@ from fastapi import FastAPI, Depends, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session
 import models, schemas, crud
-from app.database import SessionLocal
+from database import SessionLocal
+from database import engine  # این خط رو اضافه کن
+
 
 # جداول را (تنها بار اول) بساز
 models.Base.metadata.create_all(bind=engine)
