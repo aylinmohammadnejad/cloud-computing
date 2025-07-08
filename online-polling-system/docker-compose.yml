@@ -1,14 +1,31 @@
+version: "3.9"
+
 services:
+
+  frontend:
+    image: python:3.10-slim
+    working_dir: /site
+    volumes:
+      - ./frontend:/site
+    command: python3 -m http.server 8080
+    ports:
+      - "8080:8080"
+
   app:
     build:
-      context: ./app         # ⬅️ پوشه app رو به عنوان context بده
+      context: ./app
     ports:
       - "8000:8000"
     volumes:
       - ./app:/app
+      - ./frontend:/app/frontend
     depends_on:
       - db
       - redis
+      - worker
+    environment:
+      - DATABASE_URL=postgresql://user:pass@db:5432/polls
+      - REDIS_URL=redis://redis:6379/0
 
   db:
     image: postgres:13
@@ -16,6 +33,26 @@ services:
       POSTGRES_USER: user
       POSTGRES_PASSWORD: pass
       POSTGRES_DB: polls
+    volumes:
+      - pgdata:/var/lib/postgresql/data
 
   redis:
     image: redis:alpine
+    ports:
+      - "6379:6379"
+
+  worker:
+    build:
+      context: ./app
+    command: celery -A worker.celery_app worker --loglevel=info
+    depends_on:
+      - redis
+      - db
+    environment:
+      - DATABASE_URL=postgresql://user:pass@db:5432/polls
+      - REDIS_URL=redis://redis:6379/0
+    volumes:
+      - ./app:/app
+
+volumes:
+  pgdata:

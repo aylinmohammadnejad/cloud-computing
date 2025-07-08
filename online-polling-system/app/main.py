@@ -4,15 +4,12 @@ from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session
 import models, schemas, crud
 from database import SessionLocal
-from database import engine  # این خط رو اضافه کن
+from database import engine  
 
-
-# جداول را (تنها بار اول) بساز
 models.Base.metadata.create_all(bind=engine)
 
 app = FastAPI(title="Online Polling System")
 
-# اجازه CORS برای فرانت ساده
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -21,7 +18,6 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# وابستگی گرفتن سشن دیتابیس
 def get_db():
     db = SessionLocal()
     try:
@@ -52,4 +48,16 @@ def vote(slug: str, vote: schemas.VoteCreate, db: Session = Depends(get_db)):
 
 @app.get("/polls/{slug}/results")
 def poll_results(slug: str, db: Session = Depends(get_db)):
-    return crud.get_results(db, slug)          # این تابع را در crud پیاده‌سازی کن
+    return crud.get_results(db, slug)        
+
+from fastapi.staticfiles import StaticFiles
+from fastapi.responses import FileResponse
+import os
+
+app.mount("/static", StaticFiles(directory="frontend"), name="static")
+
+@app.get("/vote/{slug}")
+def vote_page(slug: str):
+    # مسیر فایل vote.html
+    file_path = os.path.join("frontend", "vote.html")
+    return FileResponse(file_path)

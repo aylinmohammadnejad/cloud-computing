@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Vote - DirectPoll</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="container">
+    <h1 id="question">Loading poll...</h1>
+
+    <form id="voteForm" style="display: none;">
+      <div id="optionsContainer"></div>
+      <input type="email" id="email" placeholder="Enter your email" required />
+      <button type="submit">Submit Vote</button>
+    </form>
+
+    <div id="result" style="margin-top: 20px;"></div>
+  </div>
+
+  <script>
+    const slug = new URLSearchParams(window.location.search).get("slug");
+
+    async function loadPoll() {
+      const res = await fetch(`http://localhost:8000/polls/${slug}`);
+      if (!res.ok) {
+        document.getElementById("question").innerText = "❌ Poll not found";
+        return;
+      }
+      const data = await res.json();
+      document.getElementById("question").innerText = data.question;
+
+      const optionsDiv = document.getElementById("optionsContainer");
+      data.options.forEach(opt => {
+        const label = document.createElement("label");
+        label.innerHTML = `<input type="radio" name="option" value="${opt}" required> ${opt}`;
+        label.style.display = "block";
+        optionsDiv.appendChild(label);
+      });
+
+      document.getElementById("voteForm").style.display = "block";
+    }
+
+    document.getElementById("voteForm").addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const email = document.getElementById("email").value;
+      const selectedOption = document.querySelector('input[name="option"]:checked').value;
+
+      const res = await fetch(`http://localhost:8000/polls/${slug}/vote`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, selected_option: selectedOption })
+      });
+
+      const result = await res.json();
+      if (res.ok) {
+        document.getElementById("result").innerHTML = "✅ Your vote has been recorded!";
+        showResults();
+      } else {
+        alert("❌ " + (result.detail || "Voting error"));
+      }
+    });
+
+    async function showResults() {
+      const res = await fetch(`http://localhost:8000/polls/${slug}/results`);
+      const data = await res.json();
+
+      const resultDiv = document.getElementById("result");
+      resultDiv.innerHTML = `<h3>Poll Results</h3><p>Total Votes: ${data.total_votes}</p>`;
+      data.results.forEach(r => {
+        resultDiv.innerHTML += `<p>${r.option}: ${r.count} votes (${r.percentage}%)</p>`;
+      });
+    }
+
+    loadPoll();
+  </script>
+</body>
+</html>

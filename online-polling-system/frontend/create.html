@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Create Poll - DirectPoll</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="container">
+    <h1>Create a New Poll</h1>
+    <p>Enter your question and options below (separate options by comma)</p>
+    <form id="createPoll">
+      <input type="text" id="question" placeholder="Enter your question" required>
+      <input type="text" id="options" placeholder="Option1, Option2, Option3" required>
+      <button type="submit">CREATE YOUR POLL NOW!</button>
+    </form>
+    <p id="link"></p>
+  </div>
+
+  <script>
+    document.getElementById("createPoll").addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const question = document.getElementById("question").value;
+      const options = document.getElementById("options").value.split(",").map(o => o.trim());
+
+      const res = await fetch("http://localhost:8000/polls/", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ question, options })
+      });
+
+      const data = await res.json();
+      if (res.ok) {
+document.getElementById("link").innerHTML = `✅ Poll created: <a href="vote.html?slug=${data.slug}">${data.slug}</a>`;
+      } else {
+        alert("Error: " + (data.detail || "Unknown error"));
+      }
+    });
+  </script>
+</body>
+</html>
