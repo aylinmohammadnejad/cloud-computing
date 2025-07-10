@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Welcome to DirectPoll</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <div class="container">
+    <h1>Welcome to DirectPoll</h1>
+    <p>Create and participate in polls easily</p>
+
+    <input type="text" id="pollLink" placeholder="Paste your poll link here..." />
+    <button onclick="goToPoll()">Go to Poll</button>
+
+    <hr style="margin: 30px 0; border: none; border-top: 1px solid #aaa;" />
+
+    <button onclick="location.href='create.html'">Create New Poll</button>
+  </div>
+
+  <script>
+    function goToPoll() {
+      const link = document.getElementById("pollLink").value.trim();
+      if (!link) {
+        alert("Please enter a poll URL.");
+        return;
+      }
+      window.location.href = link;
+    }
+  </script>
+</body>
+</html>
